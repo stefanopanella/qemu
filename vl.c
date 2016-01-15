@@ -4118,6 +4118,7 @@ int main(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 break;
+#ifdef CONFIG_VGT
             case QEMU_OPTION_vgt_low_gm_sz:
                 {
                     char *ptr;
@@ -4136,6 +4137,7 @@ int main(int argc, char **argv, char **envp)
                     vgt_fence_sz = strtol(optarg, &ptr, 10);
                 }
                 break;
+#endif
             default:
                 os_parse_cmd_args(popt->index, optarg);
             }
