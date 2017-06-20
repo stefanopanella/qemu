@@ -1117,6 +1117,11 @@ static uint64_t unassigned_mem_read(void *opaque, hwaddr addr,
     if (current_cpu != NULL) {
         cpu_unassigned_access(current_cpu, addr, false, false, 0, size);
     }
+    if (xen_enabled()) {
+        uint64_t val;
+        xen_unassigned_access(addr, false, &val, size);
+        return val;
+    }
     return 0;
 }
 
@@ -1128,6 +1133,9 @@ static void unassigned_mem_write(void *opaque, hwaddr addr,
 #endif
     if (current_cpu != NULL) {
         cpu_unassigned_access(current_cpu, addr, true, false, 0, size);
+    }
+    if (xen_enabled()) {
+        xen_unassigned_access(addr, true, &val, size);
     }
 }
 
