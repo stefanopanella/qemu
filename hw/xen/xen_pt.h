@@ -337,7 +337,8 @@ extern bool has_igd_gfx_passthru;
 static inline bool is_igd_vga_passthrough(XenHostPCIDevice *dev)
 {
     return (has_igd_gfx_passthru
-            && ((dev->class_code >> 0x8) == PCI_CLASS_DISPLAY_VGA));
+            && (((dev->class_code >> 0x8) == PCI_CLASS_DISPLAY_VGA)
+            || ((dev->class_code >> 0x8) == PCI_CLASS_DISPLAY_OTHER)));
 }
 int xen_pt_register_vga_regions(XenPCIPassthroughState *s);
 int xen_pt_unregister_vga_regions(XenPCIPassthroughState *s);
