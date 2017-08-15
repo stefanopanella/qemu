@@ -12,41 +12,6 @@ static unsigned long igd_host_opregion;
 
 #define XEN_PCI_INTEL_OPREGION_MASK 0xfff
 
-typedef struct VGARegion {
-    int type;           /* Memory or port I/O */
-    uint64_t guest_base_addr;
-    uint64_t machine_base_addr;
-    uint64_t size;    /* size of the region */
-    int rc;
-} VGARegion;
-
-#define IORESOURCE_IO           0x00000100
-#define IORESOURCE_MEM          0x00000200
-
-static struct VGARegion vga_args[] = {
-    {
-        .type = IORESOURCE_IO,
-        .guest_base_addr = 0x3B0,
-        .machine_base_addr = 0x3B0,
-        .size = 0xC,
-        .rc = -1,
-    },
-    {
-        .type = IORESOURCE_IO,
-        .guest_base_addr = 0x3C0,
-        .machine_base_addr = 0x3C0,
-        .size = 0x20,
-        .rc = -1,
-    },
-    {
-        .type = IORESOURCE_MEM,
-        .guest_base_addr = 0xa0000 >> XC_PAGE_SHIFT,
-        .machine_base_addr = 0xa0000 >> XC_PAGE_SHIFT,
-        .size = 0x20,
-        .rc = -1,
-    },
-};
-
 #define PCI_VENDOR_ID_ATI               0x1002
 
 extern int xen_pt_register_amd_vf_region(XenPCIPassthroughState *s);
@@ -58,7 +23,6 @@ extern int xen_pt_unregister_amd_vf_region(XenPCIPassthroughState *s);
 int xen_pt_register_vga_regions(XenPCIPassthroughState *s)
 {
     XenHostPCIDevice *host_dev = &s->real_device;
-    int i = 0;
 
     XEN_PT_LOG(&s->dev, "vendor: %04x device: %04x: class: %08x\n",
                host_dev->vendor_id, host_dev->device_id,
@@ -72,31 +36,6 @@ int xen_pt_register_vga_regions(XenPCIPassthroughState *s)
         return xen_pt_register_amd_vf_region(s);
     }
 
-    if (!is_igd_vga_passthrough(host_dev)) {
-        return 0;
-    }
-
-    for (i = 0 ; i < ARRAY_SIZE(vga_args); i++) {
-        if (vga_args[i].type == IORESOURCE_IO) {
-            vga_args[i].rc = xc_domain_ioport_mapping(xen_xc, xen_domid,
-                            vga_args[i].guest_base_addr,
-                            vga_args[i].machine_base_addr,
-                            vga_args[i].size, DPCI_ADD_MAPPING);
-        } else {
-            vga_args[i].rc = xc_domain_memory_mapping(xen_xc, xen_domid,
-                            vga_args[i].guest_base_addr,
-                            vga_args[i].machine_base_addr,
-                            vga_args[i].size, DPCI_ADD_MAPPING);
-        }
-
-        if (vga_args[i].rc) {
-            XEN_PT_ERR(NULL, "VGA %s mapping failed! (rc: %i)\n",
-                    vga_args[i].type == IORESOURCE_IO ? "ioport" : "memory",
-                    vga_args[i].rc);
-            return vga_args[i].rc;
-        }
-    }
-
     return 0;
 }
 
@@ -106,7 +45,6 @@ int xen_pt_register_vga_regions(XenPCIPassthroughState *s)
 int xen_pt_unregister_vga_regions(XenPCIPassthroughState *s)
 {
     XenHostPCIDevice *host_dev = &s->real_device;
-    int i = 0;
     int ret = 0;
 
     XEN_PT_LOG(&s->dev, "vendor: %04x device: %04x: class: %08x\n",
@@ -123,27 +61,6 @@ int xen_pt_unregister_vga_regions(XenPCIPassthroughState *s)
 
     if (!is_igd_vga_passthrough(host_dev)) {
         return 0;
-    }
-
-    for (i = 0 ; i < ARRAY_SIZE(vga_args); i++) {
-        if (vga_args[i].type == IORESOURCE_IO) {
-            vga_args[i].rc = xc_domain_ioport_mapping(xen_xc, xen_domid,
-                            vga_args[i].guest_base_addr,
-                            vga_args[i].machine_base_addr,
-                            vga_args[i].size, DPCI_REMOVE_MAPPING);
-        } else {
-            vga_args[i].rc = xc_domain_memory_mapping(xen_xc, xen_domid,
-                            vga_args[i].guest_base_addr,
-                            vga_args[i].machine_base_addr,
-                            vga_args[i].size, DPCI_REMOVE_MAPPING);
-        }
-
-        if (vga_args[i].rc) {
-            XEN_PT_ERR(NULL, "VGA %s unmapping failed! (rc: %i)\n",
-                    vga_args[i].type == IORESOURCE_IO ? "ioport" : "memory",
-                    vga_args[i].rc);
-            return vga_args[i].rc;
-        }
     }
 
     if (igd_guest_opregion) {
