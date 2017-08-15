@@ -160,14 +160,6 @@ int xen_pt_unregister_vga_regions(XenPCIPassthroughState *s)
     return 0;
 }
 
-static void *get_vgabios(XenPCIPassthroughState *s, int *size,
-                       XenHostPCIDevice *dev)
-{
-    return pci_assign_dev_load_option_rom(&s->dev, OBJECT(&s->dev), size,
-                                          dev->domain, dev->bus,
-                                          dev->dev, dev->func);
-}
-
 /* Refer to Seabios. */
 struct rom_header {
     uint16_t signature;
@@ -193,52 +185,6 @@ struct pci_data {
     uint8_t indicator;
     uint16_t reserved;
 } __attribute__((packed));
-
-void xen_pt_setup_vga(XenPCIPassthroughState *s, XenHostPCIDevice *dev,
-                     Error **errp)
-{
-    unsigned char *bios = NULL;
-    struct rom_header *rom;
-    int bios_size;
-    char *c = NULL;
-    char checksum = 0;
-    uint32_t len = 0;
-    struct pci_data *pd = NULL;
-
-    if (!is_igd_vga_passthrough(dev)) {
-        error_setg(errp, "Need to enable igd-passthrough");
-        return;
-    }
-
-    bios = get_vgabios(s, &bios_size, dev);
-    if (!bios) {
-        error_setg(errp, "VGA: Can't get VBIOS");
-        return;
-    }
-
-    /* Currently we fixed this address as a primary. */
-    rom = (struct rom_header *)bios;
-    pd = (void *)(bios + (unsigned char)rom->pcioffset);
-
-    /* We may need to fixup Device Identification. */
-    if (pd->device != s->real_device.device_id) {
-        pd->device = s->real_device.device_id;
-
-        len = rom->size * 512;
-        /* Then adjust the bios checksum */
-        for (c = (char *)bios; c < ((char *)bios + len); c++) {
-            checksum += *c;
-        }
-        if (checksum) {
-            bios[len - 1] -= checksum;
-            XEN_PT_LOG(&s->dev, "vga bios checksum is adjusted %x!\n",
-                       checksum);
-        }
-    }
-
-    /* Currently we fixed this address as a primary for legacy BIOS. */
-    cpu_physical_memory_rw(0xc0000, bios, bios_size, 1);
-}
 
 uint32_t igd_read_opregion(XenPCIPassthroughState *s)
 {
