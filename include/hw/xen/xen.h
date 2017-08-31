@@ -50,4 +50,7 @@ void xen_register_framebuffer(struct MemoryRegion *mr);
 
 void xen_unassigned_access(hwaddr addr, bool is_write, void *val,
                            unsigned size);
+
+void xen_platform_unplug_devices(void);
+
 #endif /* QEMU_HW_XEN_H */

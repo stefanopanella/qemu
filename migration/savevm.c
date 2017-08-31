@@ -2220,6 +2220,8 @@ void qmp_xen_save_devices_state(const char *filename, Error **errp)
         error_setg(errp, QERR_IO_ERROR);
     }
 
+    xen_platform_unplug_devices();
+
  the_end:
     if (saved_vm_running) {
         vm_start();

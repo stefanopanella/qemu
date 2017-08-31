@@ -185,6 +185,16 @@ static void pci_unplug_disks(PCIBus *bus, uint32_t flags)
     pci_for_each_device(bus, 0, unplug_disks, &flags);
 }
 
+void xen_platform_unplug_devices(void)
+{
+    PCIBus *bus = pci_find_primary_bus();
+
+    if (bus) {
+        pci_unplug_disks(bus, ~0u);
+        pci_unplug_nics(bus);
+    }
+}
+
 XenPvDriverInfo* qmp_query_xen_platform_pv_driver_info(Error **errp)
 {
     PCIBus *bus;
