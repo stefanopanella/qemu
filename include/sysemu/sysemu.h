@@ -107,6 +107,10 @@ extern int vga_interface_type;
 
 extern const char *vgt_monitor_config_file;
 
+void xengt_drm_init(void);
+bool xengt_is_enabled(void);
+void xengt_draw_primary(QemuConsole *con, int full_update);
+
 extern int graphic_width;
 extern int graphic_height;
 extern int graphic_depth;

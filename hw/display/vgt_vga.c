@@ -449,6 +449,7 @@ static void create_vgt_instance(VGTVGAState *vdev)
     qemu_add_exit_notifier(&exit_notifier);
 
     config_vgt_guest_monitors();
+    xengt_drm_init();
 }
 
 /*
