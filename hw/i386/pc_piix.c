@@ -146,9 +146,9 @@ static void pc_init1(MachineState *machine,
             pcms->above_4g_mem_size = 0;
             pcms->below_4g_mem_size = machine->ram_size;
         }
-    }
 
-    pc_cpus_init(pcms);
+        pc_cpus_init(pcms);
+    }
 
     if (kvm_enabled() && pcmc->kvmclock_enabled) {
         kvmclock_create();
