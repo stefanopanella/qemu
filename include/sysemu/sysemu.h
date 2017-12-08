@@ -105,6 +105,8 @@ extern int vga_interface_type;
 #define xenfb_enabled (vga_interface_type == VGA_XENFB)
 #define vgt_vga_enabled (vga_interface_type == VGA_VGT)
 
+extern const char *vgt_monitor_config_file;
+
 extern int graphic_width;
 extern int graphic_height;
 extern int graphic_depth;

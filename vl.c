@@ -4143,6 +4143,11 @@ int main(int argc, char **argv, char **envp)
                    vgt_cap = strtol(optarg, &ptr, 10);
                 }
 		break;
+            case QEMU_OPTION_vgt_monitor_config_file:
+                {
+                   vgt_monitor_config_file = strdup(optarg);
+                }
+		break;
 #endif
             default:
                 os_parse_cmd_args(popt->index, optarg);

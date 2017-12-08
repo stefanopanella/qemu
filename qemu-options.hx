@@ -1600,6 +1600,15 @@ STEXI
 Set the allocated GPU resource portion.
 ETEXI
 
+DEF("vgt_monitor_config_file", 1, QEMU_OPTION_vgt_monitor_config_file,
+    "-vgt_monitor_config_file [str] path to vgt monitor config file\n",
+    QEMU_ARCH_ALL)
+STEXI
+@item -vgt_monitor_config_file @var{path}
+@findex -vgt_monitor_config_file
+Set the path to the vgt monitor config file.
+ETEXI
+
 DEF("g", 1, QEMU_OPTION_g ,
     "-g WxH[xDEPTH]  Set the initial graphical resolution and depth\n",
     QEMU_ARCH_PPC | QEMU_ARCH_SPARC)
