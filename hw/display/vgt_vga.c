@@ -91,6 +91,10 @@ typedef struct VGTVGAState {
     int domid;
 } VGTVGAState;
 
+static Notifier exit_notifier;
+
+static void vgt_exit_notify(Notifier *n, void *data);
+
 /* These are the default values */
 int vgt_low_gm_sz = 64; /* in MB */
 int vgt_high_gm_sz = 448; /* in MB */
@@ -441,6 +445,8 @@ static void create_vgt_instance(VGTVGAState *vdev)
     }
 
     vdev->instance_created = TRUE;
+    exit_notifier.notify = vgt_exit_notify;
+    qemu_add_exit_notifier(&exit_notifier);
 
     config_vgt_guest_monitors();
 }
@@ -595,6 +601,17 @@ static void vgt_cleanupfn(PCIDevice *dev)
     if (d->instance_created) {
         destroy_vgt_instance(d->domid);
     }
+}
+
+static void vgt_exit_notify(Notifier *n, void *data)
+{
+    /*
+     * The vgt instance may have already been destroyed by the normal
+     * cleanup function. This covers the case where QEMU is forcibly
+     * terminated.
+     */
+    if (vgt_vga_enabled)
+        destroy_vgt_instance(xen_domid);
 }
 
 static int vgt_get_domid(void)
