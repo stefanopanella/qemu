@@ -1003,18 +1003,16 @@ static int blk_init(struct XenDevice *xendev)
             blkdev->fileproto = blkdev->params;
             blkdev->filename  = h+1;
             *h = 0;
-            if (!strcmp("vdinode", blkdev->fileproto)) {
-                h++;
-                h = strchr(h, ':');
-                blkdev->devicename = blkdev->filename;
-                blkdev->filename = NULL;
-                blkdev->nodename = h + 1;
-                *h = 0;
-            }
         } else {
             blkdev->fileproto = "<unset>";
             blkdev->filename  = blkdev->params;
         }
+    }
+    if (xendev->blocknode) {
+        /* override "params" */
+        blkdev->devicename = xendev->devicename;
+        blkdev->nodename = xendev->blocknode;
+        blkdev->filename = NULL;
     }
     if (!strcmp("aio", blkdev->fileproto)) {
         blkdev->fileproto = "raw";

@@ -680,10 +680,17 @@ static void xenbe_register_types(void)
     type_register_static(&xendev_type_info);
 }
 
-void qmp_xen_watch_domain(int domid, Error **errp);/* FIXME */
-void qmp_xen_watch_domain(int domid, Error **errp)
+void qmp_xen_watch_device(int domid, int devid, char* type, char* blocknode, char *devicename, Error **errp);/* FIXME */
+void qmp_xen_watch_device(int domid, int devid, char* type, char* blocknode, char *devicename, Error **errp)
 {
-    xenstore_scan("qdisk", domid, &xen_blkdev_ops);
+     struct XenDevice *xendev = xen_be_get_xendev(type, domid, devid, &xen_blkdev_ops);
+     if (xendev == NULL) {
+      /* TODO put something in errp */
+        /* FIXME */
+     }
+    xendev->blocknode = strdup(blocknode); /* FIXME: free this */
+    xendev->devicename = strdup(devicename);/* FIXME: free this */
+    xen_be_check_state(xendev);
 }
 
 type_init(xenbe_register_types)

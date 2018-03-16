@@ -281,5 +281,5 @@
 { 'enum': 'QuorumOpType',
   'data': [ 'read', 'write', 'flush' ] }
 
-{ 'command': 'xen-watch-domain',
-  'data': { 'domid': 'int' }}
+{ 'command': 'xen-watch-device',
+  'data': { 'domid': 'int', 'devid': 'int', 'type': 'str', 'blocknode': 'str' }}
