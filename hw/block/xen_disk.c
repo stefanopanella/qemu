@@ -97,6 +97,8 @@ struct XenBlkDev {
     bool                directiosafe;
     const char          *fileproto;
     const char          *filename;
+    const char          *devicename;
+    const char          *nodename;
     unsigned int        ring_ref[1 << MAX_RING_PAGE_ORDER];
     unsigned int        nr_ring_ref;
     void                *sring;
@@ -1001,6 +1003,14 @@ static int blk_init(struct XenDevice *xendev)
             blkdev->fileproto = blkdev->params;
             blkdev->filename  = h+1;
             *h = 0;
+            if (!strcmp("vdinode", blkdev->fileproto)) {
+                h++;
+                h = strchr(h, ':');
+                blkdev->devicename = blkdev->filename;
+                blkdev->filename = NULL;
+                blkdev->nodename = h + 1;
+                *h = 0;
+            }
         } else {
             blkdev->fileproto = "<unset>";
             blkdev->filename  = blkdev->params;
@@ -1131,10 +1141,14 @@ static int blk_connect(struct XenDevice *xendev)
             options = qdict_new();
             qdict_put_str(options, "driver", blkdev->fileproto);
         }
+        if (blkdev->nodename) {
+            xen_pv_printf(&blkdev->xendev, 2, "looking up blockdev node %s\n", blkdev->nodename);
+            options = NULL;
+        }
 
         /* setup via xenbus -> create new block driver instance */
         xen_pv_printf(&blkdev->xendev, 2, "create new bdrv (xenbus setup)\n");
-        blkdev->blk = blk_new_open(blkdev->filename, NULL, options,
+        blkdev->blk = blk_new_open(blkdev->filename, blkdev->nodename, options,
                                    qflags, &local_err);
         if (!blkdev->blk) {
             xen_pv_printf(&blkdev->xendev, 0, "error: %s\n",
@@ -1222,6 +1236,12 @@ static int blk_connect(struct XenDevice *xendev)
         blkdev->feature_persistent = FALSE;
     } else {
         blkdev->feature_persistent = !!pers;
+    }
+
+
+    if (blkdev->devicename) {
+        Error *errp; /* FIXME */
+        monitor_add_blk(blkdev->blk, strdup(blkdev->devicename), &errp);
     }
 
     if (!blkdev->xendev.protocol) {
