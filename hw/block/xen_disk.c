@@ -272,7 +272,7 @@ static int ioreq_parse(struct ioreq *ioreq)
         ioreq->prot = PROT_WRITE; /* to memory */
         break;
     case BLKIF_OP_FLUSH_DISKCACHE:
-        ioreq->presync = 1;
+        //ioreq->presync = 1;
         if (!ioreq->req.nr_segments) {
             return 0;
         }
@@ -1099,7 +1099,6 @@ static int blk_connect(struct XenDevice *xendev)
     struct XenBlkDev *blkdev = container_of(xendev, struct XenBlkDev, xendev);
     int pers, index, qflags;
     bool readonly = true;
-    bool writethrough = true;
     int order, ring_ref;
     unsigned int ring_size, max_grants;
     unsigned int i;
@@ -1112,7 +1111,6 @@ static int blk_connect(struct XenDevice *xendev)
         qflags = BDRV_O_NOCACHE | BDRV_O_NATIVE_AIO;
     } else {
         qflags = 0;
-        writethrough = false;
     }
     if (strcmp(blkdev->mode, "w") == 0) {
         qflags |= BDRV_O_RDWR;
@@ -1144,7 +1142,7 @@ static int blk_connect(struct XenDevice *xendev)
             error_free(local_err);
             return -1;
         }
-        blk_set_enable_write_cache(blkdev->blk, !writethrough);
+        blk_set_enable_write_cache(blkdev->blk, 1);
     } else {
         /* setup via qemu cmdline -> already setup for us */
         xen_pv_printf(&blkdev->xendev, 2,
