@@ -282,4 +282,4 @@
   'data': [ 'read', 'write', 'flush' ] }
 
 { 'command': 'xen-watch-device',
-  'data': { 'domid': 'int', 'devid': 'int', 'type': 'str', 'blocknode': 'str' }}
+  'data': { 'domid': 'int', 'devid': 'int', 'type': 'str', 'blocknode': 'str', 'devicename': 'str' }}
