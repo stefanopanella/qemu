@@ -122,7 +122,6 @@ static struct XenDevice *xen_be_get_xendev(const char *type, int dom, int dev,
     xendev = g_malloc0(ops->size);
     object_initialize(&xendev->qdev, ops->size, TYPE_XENBACKEND);
     OBJECT(xendev)->free = g_free;
-    qdev_set_parent_bus(DEVICE(xendev), xen_sysbus);
     qdev_set_id(DEVICE(xendev), g_strdup_printf("xen-%s-%d", type, dev));
     qdev_init_nofail(DEVICE(xendev));
     object_unref(OBJECT(xendev));
@@ -532,11 +531,6 @@ int xen_be_init(void)
         goto err;
     }
 
-    xen_sysdev = qdev_create(NULL, TYPE_XENSYSDEV);
-    qdev_init_nofail(xen_sysdev);
-    xen_sysbus = qbus_create(TYPE_XENSYSBUS, DEVICE(xen_sysdev), "xen-sysbus");
-    qbus_set_bus_hotplug_handler(xen_sysbus, &error_abort);
-
     return 0;
 
 err:
@@ -624,7 +618,7 @@ static void xendev_class_init(ObjectClass *klass, void *data)
 
 static const TypeInfo xendev_type_info = {
     .name          = TYPE_XENBACKEND,
-    .parent        = TYPE_XENSYSDEV,
+    .parent        = TYPE_DEVICE,
     .class_init    = xendev_class_init,
     .instance_size = sizeof(struct XenDevice),
 };

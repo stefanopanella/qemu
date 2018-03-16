@@ -57,6 +57,10 @@ GENERATED_FILES += qmp-marshal.c qapi-types.c qapi-visit.c qapi-event.c
 GENERATED_FILES += qmp-introspect.h
 GENERATED_FILES += qmp-introspect.c
 
+GENERATED_FILES += dp-qapi-types.h dp-qapi-visit.h dp-qapi-event.h
+GENERATED_FILES += dp-qapi-types.c dp-qapi-visit.c dp-qapi-event.c
+GENERATED_FILES += dp-qapi-event.h dp-qmp-marshal.c dp-qmp-commands.h
+
 GENERATED_FILES += trace/generated-tcg-tracers.h
 
 GENERATED_FILES += trace/generated-helpers-wrappers.h
@@ -366,6 +370,13 @@ Makefile: $(version-obj-y)
 
 libqemustub.a: $(stub-obj-y)
 libqemuutil.a: $(util-obj-y) $(trace-obj-y)
+libqemuutildp.a: $(filter-out qmp-introspect.o qapi-types.o qapi-visit.o qapi-event.o,$(util-obj-y)) \
+    $(trace-obj-y)
+libqemucrypto.a: $(crypto-obj-y)
+libqemuchardev.a: $(chardev-obj-y)
+libqemublock.a: $(block-obj-y)
+libqemuio.a: $(io-obj-y)
+libqemuqom.a: $(qom-obj-y)
 
 ######################################################################
 
@@ -376,6 +387,24 @@ qemu-img.o: qemu-img-cmds.h
 qemu-img$(EXESUF): qemu-img.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
 qemu-nbd$(EXESUF): qemu-nbd.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
 qemu-io$(EXESUF): qemu-io.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+qemu-dp$(EXESUF): \
+    qemu-dp.o dp-monitor.o dp-lib.o dp-stub.o \
+    dp-qapi-event.o dp-qapi-types.o dp-qapi-visit.o dp-qmp-marshal.o \
+    hw/block/xen_disk.o hw/xen/xen_devconfig.o hw/xen/xen_backend.o \
+    hw/xen/xen_pvdev.o \
+    blockdev-nbd.o blockdev.o block/stream.o iothread.o \
+    hw/core/qdev.o hw/core/bus.o hw/core/hotplug.o hw/core/qdev-properties.o \
+    hw/core/irq.o hw/core/fw-path-provider.o hw/core/reset.o \
+    chardev/char-socket.o \
+    libqemuchardev.a \
+    libqemublock.a \
+    libqemuio.a \
+    libqemucrypto.a \
+    libqemuqom.a \
+    libqemuutildp.a libqemustub.a
+qemu-dp$(EXESUF): LIBS = -lglib-2.0 -lz -laio -lxenevtchn -lxengnttab -lxenstore -lxenctrl -lxenforeignmemory
+
+all: qemu-dp$(EXESUF)
 
 qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
 
@@ -440,6 +469,35 @@ $(qapi-modules) $(SRC_PATH)/scripts/qapi-introspect.py $(qapi-py)
 		$(gen-out-type) -o "." $<, \
 		"GEN","$@")
 
+dp-qapi-types.c dp-qapi-types.h :\
+$(SRC_PATH)/dp.json $(qapi-modules) $(SRC_PATH)/scripts/qapi-types.py $(qapi-py)
+	$(call quiet-command,set -e; \
+		$(PYTHON) $(SRC_PATH)/scripts/qapi-types.py \
+		$(gen-out-type) -o "." -p "dp-" -b $<; \
+		sed -i '/^#include "dp-qapi-types.h"$$/d' "$@", \
+		"GEN","$@")
+dp-qapi-visit.c dp-qapi-visit.h :\
+$(SRC_PATH)/dp.json $(qapi-modules) $(SRC_PATH)/scripts/qapi-visit.py $(qapi-py)
+	$(call quiet-command,set -e; \
+		$(PYTHON) $(SRC_PATH)/scripts/qapi-visit.py \
+		$(gen-out-type) -o "." -p "dp-" -b $<; \
+		sed -i '/^#include "dp-qapi-types.h"$$/d' "$@", \
+		"GEN","$@")
+dp-qmp-commands.h dp-qmp-marshal.c :\
+$(SRC_PATH)/dp.json $(qapi-modules) $(SRC_PATH)/scripts/qapi-commands.py $(qapi-py)
+	$(call quiet-command,set -e; \
+		$(PYTHON) $(SRC_PATH)/scripts/qapi-commands.py \
+		$(gen-out-type) -o "." -p "dp-" $<; \
+		sed -i '/^#include "dp-qapi-types.h"$$/d' "$@", \
+		"GEN","$@")
+dp-qapi-event.c dp-qapi-event.h :\
+$(SRC_PATH)/dp.json $(qapi-modules) $(SRC_PATH)/scripts/qapi-event.py $(qapi-py)
+	$(call quiet-command,set -e; \
+		$(PYTHON) $(SRC_PATH)/scripts/qapi-event.py \
+		$(gen-out-type) -o "." -p "dp-" $<; \
+		sed -i '/^#include "dp-qapi-types.h"$$/d' "$@", \
+		"GEN","$@")
+
 QGALIB_GEN=$(addprefix qga/qapi-generated/, qga-qapi-types.h qga-qapi-visit.h qga-qmp-commands.h)
 $(qga-obj-y): $(QGALIB_GEN)
 
@@ -489,6 +547,7 @@ clean:
 	rm -f *.msi
 	find . \( -name '*.so' -o -name '*.dll' -o -name '*.mo' -o -name '*.[oda]' \) -type f -exec rm {} +
 	rm -f $(filter-out %.tlb,$(TOOLS)) $(HELPERS-y) qemu-ga TAGS cscope.* *.pod *~ */*~
+	rm -f qemu-dp
 	rm -f fsdev/*.pod
 	rm -f qemu-img-cmds.h
 	rm -f ui/shader/*-vert.h ui/shader/*-frag.h
@@ -624,6 +683,7 @@ endif
 ifeq ($(CONFIG_GTK),y)
 	$(MAKE) -C po $@
 endif
+	$(call install-prog,qemu-dp$(EXESUF),$(DESTDIR)$(bindir))
 	$(INSTALL_DIR) "$(DESTDIR)$(qemu_datadir)/keymaps"
 	set -e; for x in $(KEYMAPS); do \
 		$(INSTALL_DATA) $(SRC_PATH)/pc-bios/keymaps/$$x "$(DESTDIR)$(qemu_datadir)/keymaps"; \

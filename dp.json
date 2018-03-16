@@ -1,0 +1,589 @@
+{ 'pragma': {
+    'name-case-whitelist': [
+        'QapiErrorClass'       # all members, visible through errors
+    ] } }
+
+# QAPI common definitions
+{ 'include': 'qapi/common.json' }
+
+# QAPI crypto definitions
+{ 'include': 'qapi/crypto.json' }
+
+# QAPI block definitions
+{ 'include': 'qapi/block.json' }
+
+##
+# @InetSocketAddressBase:
+#
+# @host: host part of the address
+# @port: port part of the address
+##
+{ 'struct': 'InetSocketAddressBase',
+  'data': {
+    'host': 'str',
+    'port': 'str' } }
+
+##
+# @InetSocketAddress:
+#
+# Captures a socket address or address range in the Internet namespace.
+#
+# @numeric: true if the host/port are guaranteed to be numeric,
+#           false if name resolution should be attempted. Defaults to false.
+#           (Since 2.9)
+#
+# @to: If present, this is range of possible addresses, with port
+#      between @port and @to.
+#
+# @ipv4: whether to accept IPv4 addresses, default try both IPv4 and IPv6
+#
+# @ipv6: whether to accept IPv6 addresses, default try both IPv4 and IPv6
+#
+# Since: 1.3
+##
+{ 'struct': 'InetSocketAddress',
+  'base': 'InetSocketAddressBase',
+  'data': {
+    '*numeric':  'bool',
+    '*to': 'uint16',
+    '*ipv4': 'bool',
+    '*ipv6': 'bool' } }
+
+##
+# @UnixSocketAddress:
+#
+# Captures a socket address in the local ("Unix socket") namespace.
+#
+# @path: filesystem path to use
+#
+# Since: 1.3
+##
+{ 'struct': 'UnixSocketAddress',
+  'data': {
+    'path': 'str' } }
+
+##
+# @VsockSocketAddress:
+#
+# Captures a socket address in the vsock namespace.
+#
+# @cid: unique host identifier
+# @port: port
+#
+# Note: string types are used to allow for possible future hostname or
+# service resolution support.
+#
+# Since: 2.8
+##
+{ 'struct': 'VsockSocketAddress',
+  'data': {
+    'cid': 'str',
+    'port': 'str' } }
+
+##
+# @SocketAddressLegacy:
+#
+# Captures the address of a socket, which could also be a named file descriptor
+#
+# Note: This type is deprecated in favor of SocketAddress.  The
+# difference between SocketAddressLegacy and SocketAddress is that the
+# latter is a flat union rather than a simple union. Flat is nicer
+# because it avoids nesting on the wire, i.e. that form has fewer {}.
+
+#
+# Since: 1.3
+##
+{ 'union': 'SocketAddressLegacy',
+  'data': {
+    'inet': 'InetSocketAddress',
+    'unix': 'UnixSocketAddress',
+    'vsock': 'VsockSocketAddress',
+    'fd': 'String' } }
+
+##
+# @SocketAddressType:
+#
+# Available SocketAddress types
+#
+# @inet:  Internet address
+#
+# @unix:  Unix domain socket
+#
+# Since: 2.9
+##
+{ 'enum': 'SocketAddressType',
+  'data': [ 'inet', 'unix', 'vsock', 'fd' ] }
+
+##
+# @SocketAddress:
+#
+# Captures the address of a socket, which could also be a named file
+# descriptor
+#
+# @type:       Transport type
+#
+# Since: 2.9
+##
+{ 'union': 'SocketAddress',
+  'base': { 'type': 'SocketAddressType' },
+  'discriminator': 'type',
+  'data': { 'inet': 'InetSocketAddress',
+            'unix': 'UnixSocketAddress',
+            'vsock': 'VsockSocketAddress',
+            'fd': 'String' } }
+
+##
+# @IoOperationType:
+#
+# An enumeration of the I/O operation types
+#
+# @read: read operation
+#
+# @write: write operation
+#
+# Since: 2.1
+##
+{ 'enum': 'IoOperationType',
+  'data': [ 'read', 'write' ] }
+
+##
+# @String:
+#
+# A fat type wrapping 'str', to be embedded in lists.
+#
+# Since: 1.2
+##
+{ 'struct': 'String',
+  'data': {
+    'str': 'str' } }
+
+##
+# @ChardevCommon:
+#
+# Configuration shared across all chardev backends
+#
+# @logfile: The name of a logfile to save output
+# @logappend: true to append instead of truncate
+#             (default to false to truncate)
+#
+# Since: 2.6
+##
+{ 'struct': 'ChardevCommon', 'data': { '*logfile': 'str',
+                                       '*logappend': 'bool' } }
+
+##
+# @ChardevFile:
+#
+# Configuration info for file chardevs.
+#
+# @in:  The name of the input file
+# @out: The name of the output file
+# @append: Open the file in append mode (default false to
+#          truncate) (Since 2.6)
+#
+# Since: 1.4
+##
+{ 'struct': 'ChardevFile', 'data': { '*in' : 'str',
+                                   'out' : 'str',
+                                   '*append': 'bool' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevHostdev:
+#
+# Configuration info for device and pipe chardevs.
+#
+# @device: The name of the special file for the device,
+#          i.e. /dev/ttyS0 on Unix or COM1: on Windows
+#
+# Since: 1.4
+##
+{ 'struct': 'ChardevHostdev', 'data': { 'device' : 'str' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevSocket:
+#
+# Configuration info for (stream) socket chardevs.
+#
+# @addr: socket address to listen on (server=true)
+#        or connect to (server=false)
+# @tls-creds: the ID of the TLS credentials object (since 2.6)
+# @server: create server socket (default: true)
+# @wait: wait for incoming connection on server
+#        sockets (default: false).
+# @nodelay: set TCP_NODELAY socket option (default: false)
+# @telnet: enable telnet protocol on server
+#          sockets (default: false)
+# @tn3270: enable tn3270 protocol on server
+#          sockets (default: false) (Since: 2.10)
+# @reconnect: For a client socket, if a socket is disconnected,
+#          then attempt a reconnect after the given number of seconds.
+#          Setting this to zero disables this function. (default: 0)
+#          (Since: 2.2)
+#
+# Since: 1.4
+##
+{ 'struct': 'ChardevSocket', 'data': { 'addr'       : 'SocketAddressLegacy',
+                                     '*tls-creds'  : 'str',
+                                     '*server'    : 'bool',
+                                     '*wait'      : 'bool',
+                                     '*nodelay'   : 'bool',
+                                     '*telnet'    : 'bool',
+                                     '*tn3270'    : 'bool',
+                                     '*reconnect' : 'int' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevUdp:
+#
+# Configuration info for datagram socket chardevs.
+#
+# @remote: remote address
+# @local: local address
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevUdp', 'data': { 'remote' : 'SocketAddressLegacy',
+                                  '*local' : 'SocketAddressLegacy' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevMux:
+#
+# Configuration info for mux chardevs.
+#
+# @chardev: name of the base chardev.
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevMux', 'data': { 'chardev' : 'str' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevStdio:
+#
+# Configuration info for stdio chardevs.
+#
+# @signal: Allow signals (such as SIGINT triggered by ^C)
+#          be delivered to qemu.  Default: true in -nographic mode,
+#          false otherwise.
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevStdio', 'data': { '*signal' : 'bool' },
+  'base': 'ChardevCommon' }
+
+
+##
+# @ChardevSpiceChannel:
+#
+# Configuration info for spice vm channel chardevs.
+#
+# @type: kind of channel (for example vdagent).
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevSpiceChannel', 'data': { 'type'  : 'str' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevSpicePort:
+#
+# Configuration info for spice port chardevs.
+#
+# @fqdn: name of the channel (see docs/spice-port-fqdn.txt)
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevSpicePort', 'data': { 'fqdn'  : 'str' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevVC:
+#
+# Configuration info for virtual console chardevs.
+#
+# @width:  console width,  in pixels
+# @height: console height, in pixels
+# @cols:   console width,  in chars
+# @rows:   console height, in chars
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevVC', 'data': { '*width'  : 'int',
+                                 '*height' : 'int',
+                                 '*cols'   : 'int',
+                                 '*rows'   : 'int' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevRingbuf:
+#
+# Configuration info for ring buffer chardevs.
+#
+# @size: ring buffer size, must be power of two, default is 65536
+#
+# Since: 1.5
+##
+{ 'struct': 'ChardevRingbuf', 'data': { '*size'  : 'int' },
+  'base': 'ChardevCommon' }
+
+##
+# @ChardevBackend:
+#
+# Configuration info for the new chardev backend.
+#
+# Since: 1.4 (testdev since 2.2, wctablet since 2.9)
+##
+{ 'union': 'ChardevBackend', 'data': { 'file'   : 'ChardevFile',
+                                       'serial' : 'ChardevHostdev',
+                                       'parallel': 'ChardevHostdev',
+                                       'pipe'   : 'ChardevHostdev',
+                                       'socket' : 'ChardevSocket',
+                                       'udp'    : 'ChardevUdp',
+                                       'pty'    : 'ChardevCommon',
+                                       'null'   : 'ChardevCommon',
+                                       'mux'    : 'ChardevMux',
+                                       'msmouse': 'ChardevCommon',
+                                       'wctablet' : 'ChardevCommon',
+                                       'braille': 'ChardevCommon',
+                                       'testdev': 'ChardevCommon',
+                                       'stdio'  : 'ChardevStdio',
+                                       'console': 'ChardevCommon',
+                                       'spicevmc' : 'ChardevSpiceChannel',
+                                       'spiceport' : 'ChardevSpicePort',
+                                       'vc'     : 'ChardevVC',
+                                       'ringbuf': 'ChardevRingbuf',
+                                       # next one is just for compatibility
+                                       'memory' : 'ChardevRingbuf' } }
+
+##
+# @Abort:
+#
+# This action can be used to test transaction failure.
+#
+# Since: 1.6
+##
+{ 'struct': 'Abort',
+  'data': { } }
+
+##
+# @ActionCompletionMode:
+#
+# An enumeration of Transactional completion modes.
+#
+# @individual: Do not attempt to cancel any other Actions if any Actions fail
+#              after the Transaction request succeeds. All Actions that
+#              can complete successfully will do so without waiting on others.
+#              This is the default.
+#
+# @grouped: If any Action fails after the Transaction succeeds, cancel all
+#           Actions. Actions do not complete until all Actions are ready to
+#           complete. May be rejected by Actions that do not support this
+#           completion mode.
+#
+# Since: 2.5
+##
+{ 'enum': 'ActionCompletionMode',
+  'data': [ 'individual', 'grouped' ] }
+
+##
+# @TransactionAction:
+#
+# A discriminated record of operations that can be performed with
+# @transaction. Action @type can be:
+#
+# - @abort: since 1.6
+# - @block-dirty-bitmap-add: since 2.5
+# - @block-dirty-bitmap-clear: since 2.5
+# - @blockdev-backup: since 2.3
+# - @blockdev-snapshot: since 2.5
+# - @blockdev-snapshot-internal-sync: since 1.7
+# - @blockdev-snapshot-sync: since 1.1
+# - @drive-backup: since 1.6
+#
+# Since: 1.1
+##
+{ 'union': 'TransactionAction',
+  'data': {
+       'abort': 'Abort',
+       'block-dirty-bitmap-add': 'BlockDirtyBitmapAdd',
+       'block-dirty-bitmap-clear': 'BlockDirtyBitmap',
+       'blockdev-backup': 'BlockdevBackup',
+       'blockdev-snapshot': 'BlockdevSnapshot',
+       'blockdev-snapshot-internal-sync': 'BlockdevSnapshotInternal',
+       'blockdev-snapshot-sync': 'BlockdevSnapshotSync',
+       'drive-backup': 'DriveBackup'
+   } }
+
+##
+# @TransactionProperties:
+#
+# Optional arguments to modify the behavior of a Transaction.
+#
+# @completion-mode: Controls how jobs launched asynchronously by
+#                   Actions will complete or fail as a group.
+#                   See @ActionCompletionMode for details.
+#
+# Since: 2.5
+##
+{ 'struct': 'TransactionProperties',
+  'data': {
+       '*completion-mode': 'ActionCompletionMode'
+  }
+}
+
+##
+# @QUORUM_FAILURE:
+#
+# Emitted by the Quorum block driver if it fails to establish a quorum
+#
+# @reference: device name if defined else node name
+#
+# @sector-num: number of the first sector of the failed read operation
+#
+# @sectors-count: failed read operation sector count
+#
+# Note: This event is rate-limited.
+#
+# Since: 2.0
+#
+# Example:
+#
+# <- { "event": "QUORUM_FAILURE",
+#      "data": { "reference": "usr1", "sector-num": 345435, "sectors-count": 5 },
+#      "timestamp": { "seconds": 1344522075, "microseconds": 745528 } }
+#
+##
+{ 'event': 'QUORUM_FAILURE',
+  'data': { 'reference': 'str', 'sector-num': 'int', 'sectors-count': 'int' } }
+
+##
+# @QUORUM_REPORT_BAD:
+#
+# Emitted to report a corruption of a Quorum file
+#
+# @type: quorum operation type (Since 2.6)
+#
+# @error: error message. Only present on failure. This field
+#         contains a human-readable error message. There are no semantics other
+#         than that the block layer reported an error and clients should not
+#         try to interpret the error string.
+#
+# @node-name: the graph node name of the block driver state
+#
+# @sector-num: number of the first sector of the failed read operation
+#
+# @sectors-count: failed read operation sector count
+#
+# Note: This event is rate-limited.
+#
+# Since: 2.0
+#
+# Example:
+#
+# 1. Read operation
+#
+# { "event": "QUORUM_REPORT_BAD",
+#      "data": { "node-name": "node0", "sector-num": 345435, "sectors-count": 5,
+#                "type": "read" },
+#      "timestamp": { "seconds": 1344522075, "microseconds": 745528 } }
+#
+# 2. Flush operation
+#
+# { "event": "QUORUM_REPORT_BAD",
+#      "data": { "node-name": "node0", "sector-num": 0, "sectors-count": 2097120,
+#                "type": "flush", "error": "Broken pipe" },
+#      "timestamp": { "seconds": 1456406829, "microseconds": 291763 } }
+#
+##
+{ 'event': 'QUORUM_REPORT_BAD',
+  'data': { 'type': 'QuorumOpType', '*error': 'str', 'node-name': 'str',
+            'sector-num': 'int', 'sectors-count': 'int' } }
+
+##
+# @LostTickPolicy:
+#
+# Policy for handling lost ticks in timer devices.
+#
+# @discard: throw away the missed tick(s) and continue with future injection
+#           normally.  Guest time may be delayed, unless the OS has explicit
+#           handling of lost ticks
+#
+# @delay: continue to deliver ticks at the normal rate.  Guest time will be
+#         delayed due to the late tick
+#
+# @merge: merge the missed tick(s) into one tick and inject.  Guest time
+#         may be delayed, depending on how the OS reacts to the merging
+#         of ticks
+#
+# @slew: deliver ticks at a higher rate to catch up with the missed tick. The
+#        guest time should not be delayed once catchup is complete.
+#
+# Since: 2.0
+##
+{ 'enum': 'LostTickPolicy',
+  'data': ['discard', 'delay', 'merge', 'slew' ] }
+
+##
+# @DEVICE_DELETED:
+#
+# Emitted whenever the device removal completion is acknowledged by the guest.
+# At this point, it's safe to reuse the specified device ID. Device removal can
+# be initiated by the guest or by HMP/QMP commands.
+#
+# @device: device name
+#
+# @path: device path
+#
+# Since: 1.5
+#
+# Example:
+#
+# <- { "event": "DEVICE_DELETED",
+#      "data": { "device": "virtio-net-pci-0",
+#                "path": "/machine/peripheral/virtio-net-pci-0" },
+#      "timestamp": { "seconds": 1265044230, "microseconds": 450486 } }
+#
+##
+{ 'event': 'DEVICE_DELETED',
+  'data': { '*device': 'str', 'path': 'str' } }
+
+##
+# @qmp_capabilities:
+#
+# Enable QMP capabilities.
+#
+# Arguments: None.
+#
+# Example:
+#
+# -> { "execute": "qmp_capabilities" }
+# <- { "return": {} }
+#
+# Notes: This command is valid exactly when first connecting: it must be
+# issued before any other command will be accepted, and will fail once the
+# monitor is accepting other commands. (see qemu docs/interop/qmp-spec.txt)
+#
+# Since: 0.13
+#
+##
+{ 'command': 'qmp_capabilities' }
+
+##
+# @quit:
+#
+# This command will cause the QEMU process to exit gracefully.  While every
+# attempt is made to send the QMP response before terminating, this is not
+# guaranteed.  When using this interface, a premature EOF would not be
+# unexpected.
+#
+# Since: 0.14.0
+#
+# Example:
+#
+# -> { "execute": "quit" }
+# <- { "return": {} }
+##
+{ 'command': 'quit' }

@@ -134,3 +134,9 @@ trace-dtrace-root.h
 trace-dtrace-root.dtrace
 trace-ust-all.h
 trace-ust-all.c
+/dp-qapi-types.[ch]
+/dp-qapi-visit.[ch]
+/dp-qapi-event.[ch]
+/dp-qmp-commands.h
+/dp-qmp-marshal.c
+/qemu-dp
