@@ -22,6 +22,7 @@
 #include "hw/qdev-core.h"
 #include "hw/xen/xen_backend.h"
 #include "hw/xen/xen_pvdev.h"
+#include "qmp-commands.h"
 
 /* private */
 static int debug;
@@ -201,7 +202,7 @@ void xen_pv_printf(struct XenDevice *xendev, int msg_level,
     va_list args;
 
     if (xendev) {
-        if (msg_level > xendev->debug) {
+        if (msg_level > xendev->debug && msg_level > debug) {
             return;
         }
         qemu_log("xen be: %s: ", xendev->name);
@@ -226,6 +227,11 @@ void xen_pv_printf(struct XenDevice *xendev, int msg_level,
         va_end(args);
     }
     qemu_log_flush();
+}
+
+void qmp_xen_pv_debug(xen_pv_debug_level level, Error **errp)
+{
+	debug = level;
 }
 
 void xen_pv_evtchn_event(void *opaque)

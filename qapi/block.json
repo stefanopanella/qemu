@@ -283,3 +283,8 @@
 
 { 'command': 'xen-watch-device',
   'data': { 'domid': 'int', 'devid': 'int', 'type': 'str', 'blocknode': 'str', 'devicename': 'str' }}
+
+{ 'enum' : 'xen-pv-debug-level',
+   'data': ['error', 'info', 'verbose', 'debug'] }
+{ 'command': 'xen-pv-debug',
+  'data': { 'level': 'xen-pv-debug-level' }}
