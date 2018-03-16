@@ -1362,6 +1362,7 @@ static void blk_disconnect(struct XenDevice *xendev)
     aio_context_acquire(blkdev->ctx);
 
     if (blkdev->blk) {
+        monitor_remove_blk(blkdev->blk);
         blk_set_aio_context(blkdev->blk, qemu_get_aio_context());
         blk_detach_dev(blkdev->blk, blkdev);
         blk_unref(blkdev->blk);
