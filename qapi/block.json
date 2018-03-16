@@ -280,3 +280,6 @@
 ##
 { 'enum': 'QuorumOpType',
   'data': [ 'read', 'write', 'flush' ] }
+
+{ 'command': 'xen-watch-domain',
+  'data': { 'domid': 'int' }}

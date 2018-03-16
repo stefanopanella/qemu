@@ -672,11 +672,18 @@ static const TypeInfo xensysdev_info = {
     .class_init    = xen_sysdev_class_init,
 };
 
+
 static void xenbe_register_types(void)
 {
     type_register_static(&xensysbus_info);
     type_register_static(&xensysdev_info);
     type_register_static(&xendev_type_info);
+}
+
+void qmp_xen_watch_domain(int domid, Error **errp);/* FIXME */
+void qmp_xen_watch_domain(int domid, Error **errp)
+{
+    xenstore_scan("qdisk", domid, &xen_blkdev_ops);
 }
 
 type_init(xenbe_register_types)
