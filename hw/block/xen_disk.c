@@ -1357,6 +1357,7 @@ static void blk_disconnect(struct XenDevice *xendev)
 {
     struct XenBlkDev *blkdev = container_of(xendev, struct XenBlkDev, xendev);
 
+    xen_pv_printf(&blkdev->xendev, 1, "blk_disconnect\n");
     trace_xen_disk_disconnect(xendev->name);
 
     aio_context_acquire(blkdev->ctx);
