@@ -281,10 +281,52 @@
 { 'enum': 'QuorumOpType',
   'data': [ 'read', 'write', 'flush' ] }
 
+##
+# @xen-watch-device:
+#
+# Add XenWD device
+#
+# @domid: read operation
+#
+# @devid: write operation
+#
+# @type: flush operation
+#
+# @blocknode: flush operation
+#
+# @devicename: flush operation
+#
+# Since: 2.9
+##
 { 'command': 'xen-watch-device',
-  'data': { 'domid': 'int', 'devid': 'int', 'type': 'str', 'blocknode': 'str', 'devicename': 'str' }}
+  'data': { 'domid': 'int', 'devid': 'int', 'type': 'str', 'blocknode': 'str', 'devicename': 'str' } }
 
+##
+# @xen-pv-debug-level:
+#
+# Add XenWD device
+#
+# @error: read operation
+#
+# @info: write operation
+#
+# @verbose: flush operation
+#
+# @debug: flush operation
+#
+# Since: 2.9
+##
 { 'enum' : 'xen-pv-debug-level',
    'data': ['error', 'info', 'verbose', 'debug'] }
+
+##
+# @xen-pv-debug:
+#
+# Add XenWD device
+#
+# @level: read operation
+#
+# Since: 2.9
+##
 { 'command': 'xen-pv-debug',
-  'data': { 'level': 'xen-pv-debug-level' }}
+  'data': { 'level': 'xen-pv-debug-level' } }
