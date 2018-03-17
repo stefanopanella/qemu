@@ -1064,7 +1064,7 @@ static int blk_init(struct XenDevice *xendev)
     /* fill info
      * blk_connect supplies sector-size and sectors
      */
-    xenstore_write_be_int(&blkdev->xendev, "feature-flush-cache", 1);
+    /* xenstore_write_be_int(&blkdev->xendev, "feature-flush-cache", 1); */
     xenstore_write_be_int(&blkdev->xendev, "feature-persistent",
                           !blkdev->feature_grant_copy);
     xenstore_write_be_int(&blkdev->xendev, "info", info);
