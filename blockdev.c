@@ -54,6 +54,7 @@
 #include "qemu/cutils.h"
 #include "qemu/help_option.h"
 #include "qemu/throttle-options.h"
+#include "qemu/id.h"
 
 static QTAILQ_HEAD(, BlockDriverState) monitor_bdrv_states =
     QTAILQ_HEAD_INITIALIZER(monitor_bdrv_states);
@@ -1630,6 +1631,7 @@ static void external_snapshot_prepare(BlkActionState *common,
     /* Device and node name of the image to generate the snapshot from */
     const char *device;
     const char *node_name;
+    char *old_node_name;
     /* Reference to the new image (for 'blockdev-snapshot') */
     const char *snapshot_ref;
     /* File name of the new image (for 'blockdev-snapshot-sync') */
@@ -1677,6 +1679,10 @@ static void external_snapshot_prepare(BlkActionState *common,
     state->aio_context = bdrv_get_aio_context(state->old_bs);
     aio_context_acquire(state->aio_context);
     bdrv_drained_begin(state->old_bs);
+
+    old_node_name = id_generate(ID_BLOCK);
+    pstrcpy(state->old_bs->node_name, sizeof(state->old_bs->node_name),
+            old_node_name);
 
     if (!bdrv_is_inserted(state->old_bs)) {
         error_setg(errp, QERR_DEVICE_HAS_NO_MEDIUM, device);
