@@ -10,8 +10,11 @@
 #include "qapi/qmp/qerror.h"
 #include "dp-qmp-commands.h"
 #include "monitor/dp-monitor.h"
+#include "qapi/qmp/dispatch.h"
 
 /* Most of this code has been taken from monitor.c */
+
+QemuRecMutex monitor_rec_lock;
 
 typedef struct DPMonitor {
     CharBackend chr;
@@ -137,7 +140,9 @@ static void handle_qmp_command(JSONMessageParser *parser, GQueue *tokens)
         qdict_del(qdict, "id");
     } /* else will fail qmp_dispatch() */
 
+    qemu_rec_mutex_lock(&monitor_rec_lock);
     rsp = qmp_dispatch(mon->commands, req);
+    qemu_rec_mutex_unlock(&monitor_rec_lock);
 
 err_out:
     if (err) {
@@ -253,6 +258,7 @@ void dp_monitor_init(Chardev *chr)
     mon = g_malloc(sizeof(DPMonitor));
     memset(mon, 0, sizeof(DPMonitor));
     qemu_mutex_init(&mon->out_lock);
+    qemu_rec_mutex_init(&monitor_rec_lock);
     mon->outbuf = qstring_new();
     qemu_chr_fe_init(&mon->chr, chr, &error_abort);
     QTAILQ_INIT(&qmp_cap_negotiation_commands);
@@ -272,4 +278,5 @@ void dp_monitor_destroy(void)
     json_message_parser_destroy(&mon->parser);
     QDECREF(mon->outbuf);
     qemu_mutex_destroy(&mon->out_lock);
+    qemu_rec_mutex_destroy(&monitor_rec_lock);
 }

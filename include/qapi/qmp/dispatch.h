@@ -16,6 +16,7 @@
 
 #include "qapi/qmp/qobject.h"
 #include "qapi/qmp/qdict.h"
+#include "qemu/thread.h"
 
 typedef void (QmpCommandFunc)(QDict *, QObject **, Error **);
 
@@ -54,4 +55,5 @@ typedef void (*qmp_cmd_callback_fn)(QmpCommand *cmd, void *opaque);
 void qmp_for_each_command(QmpCommandList *cmds, qmp_cmd_callback_fn fn,
                           void *opaque);
 
+extern QemuRecMutex monitor_rec_lock;
 #endif

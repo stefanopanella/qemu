@@ -213,6 +213,7 @@ struct Monitor {
 
 /* Protects mon_list, monitor_event_state.  */
 static QemuMutex monitor_lock;
+QemuRecMutex monitor_rec_lock;
 
 static QLIST_HEAD(mon_list, Monitor) mon_list;
 static QLIST_HEAD(mon_fdsets, MonFdset) mon_fdsets;

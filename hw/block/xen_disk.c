@@ -34,6 +34,8 @@
 #include "qapi/qmp/qstring.h"
 #include "qom/object_interfaces.h"
 #include "trace.h"
+#include "qapi/qmp/dispatch.h"
+
 
 /* ------------------------------------------------------------- */
 
@@ -1114,6 +1116,9 @@ static int blk_connect(struct XenDevice *xendev)
 
     trace_xen_disk_connect(xendev->name);
 
+    /* serialize with blockdev-snapshot-sync qmp command */
+    qemu_rec_mutex_lock(&monitor_rec_lock);
+
     /* read-only ? */
     if (blkdev->directiosafe) {
         qflags = BDRV_O_NOCACHE | BDRV_O_NATIVE_AIO;
@@ -1350,6 +1355,9 @@ static int blk_connect(struct XenDevice *xendev)
                   "remote port %d, local port %d\n",
                   blkdev->xendev.protocol, blkdev->nr_ring_ref,
                   blkdev->xendev.remote_port, blkdev->xendev.local_port);
+
+    qemu_rec_mutex_unlock(&monitor_rec_lock);
+
     return 0;
 }
 
@@ -1359,6 +1367,9 @@ static void blk_disconnect(struct XenDevice *xendev)
 
     xen_pv_printf(&blkdev->xendev, 1, "blk_disconnect\n");
     trace_xen_disk_disconnect(xendev->name);
+
+    /* serialize with blockdev-snapshot-sync qmp command */
+    qemu_rec_mutex_lock(&monitor_rec_lock);
 
     aio_context_acquire(blkdev->ctx);
 
@@ -1399,6 +1410,8 @@ static void blk_disconnect(struct XenDevice *xendev)
         }
         blkdev->feature_persistent = false;
     }
+
+    qemu_rec_mutex_unlock(&monitor_rec_lock);
 }
 
 static int blk_free(struct XenDevice *xendev)
