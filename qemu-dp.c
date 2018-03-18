@@ -58,6 +58,34 @@ void qemu_mutex_unlock_iothread(void)
     qemu_mutex_unlock(&qemu_global_mutex);
 }
 
+static void my_trace_init_events(const char *fname)
+{
+    FILE *fp;
+    char line_buf[1024];
+
+    if (fname == NULL) {
+        return;
+    }
+
+    fp = fopen(fname, "r");
+    if (!fp) {
+        exit(1);
+    }
+    while (fgets(line_buf, sizeof(line_buf), fp)) {
+        size_t len = strlen(line_buf);
+        if (len > 1) {              /* skip empty lines */
+            line_buf[len - 1] = '\0';
+            if ('#' == line_buf[0]) { /* skip commented lines */
+                continue;
+            }
+            trace_enable_events(line_buf);
+        }
+    }
+    if (fclose(fp) != 0) {
+        exit(1);
+    }
+}
+
 int main(int argc, char **argv)
 {
     Error *err = NULL;
@@ -73,6 +101,12 @@ int main(int argc, char **argv)
         printf("Usage: %s <qmp-socket-path>\n", argv[0]);
         exit(1);
     }
+
+    if (!trace_init_backends()) {
+        exit(1);
+    }
+
+    my_trace_init_events("/usr/lib64/xen/bin/qemu-dp-tracing");
 
     if (qemu_init_main_loop(&err)) {
         error_report_err(err);
