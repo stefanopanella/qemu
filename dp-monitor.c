@@ -11,6 +11,11 @@
 #include "dp-qmp-commands.h"
 #include "monitor/dp-monitor.h"
 #include "qapi/qmp/dispatch.h"
+#include "trace-root.h"
+#include "trace/control.h"
+#ifdef CONFIG_TRACE_SIMPLE
+#include "trace/simple.h"
+#endif
 
 /* Most of this code has been taken from monitor.c */
 
@@ -141,7 +146,15 @@ static void handle_qmp_command(JSONMessageParser *parser, GQueue *tokens)
     } /* else will fail qmp_dispatch() */
 
     qemu_rec_mutex_lock(&monitor_rec_lock);
+
+    QString *req_json = qobject_to_json(req);
+    trace_dp_handle_qmp_command_enter(qstring_get_str(req_json));
+
     rsp = qmp_dispatch(mon->commands, req);
+
+    trace_dp_handle_qmp_command_exit(qstring_get_str(req_json));
+    QDECREF(req_json);
+
     qemu_rec_mutex_unlock(&monitor_rec_lock);
 
 err_out:

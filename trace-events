@@ -48,6 +48,10 @@ monitor_protocol_event_queue(uint32_t event, void *qdict, uint64_t rate) "event=
 handle_hmp_command(void *mon, const char *cmdline) "mon %p cmdline: %s"
 handle_qmp_command(void *mon, const char *req) "mon %p req: %s"
 
+# dp-monitor.c
+dp_handle_qmp_command_enter(const char *req) "req: %s"
+dp_handle_qmp_command_exit(const char *req) "req: %s"
+
 # dma-helpers.c
 dma_blk_io(void *dbs, void *bs, int64_t offset, bool to_dev) "dbs=%p bs=%p offset=%" PRId64 " to_dev=%d"
 dma_aio_cancel(void *dbs) "dbs=%p"

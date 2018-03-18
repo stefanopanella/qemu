@@ -1118,6 +1118,7 @@ static int blk_connect(struct XenDevice *xendev)
 
     /* serialize with blockdev-snapshot-sync qmp command */
     qemu_rec_mutex_lock(&monitor_rec_lock);
+    trace_xen_disk_connect_enter(xendev->name);
 
     /* read-only ? */
     if (blkdev->directiosafe) {
@@ -1356,6 +1357,7 @@ static int blk_connect(struct XenDevice *xendev)
                   blkdev->xendev.protocol, blkdev->nr_ring_ref,
                   blkdev->xendev.remote_port, blkdev->xendev.local_port);
 
+    trace_xen_disk_connect_exit(xendev->name);
     qemu_rec_mutex_unlock(&monitor_rec_lock);
 
     return 0;
@@ -1370,6 +1372,7 @@ static void blk_disconnect(struct XenDevice *xendev)
 
     /* serialize with blockdev-snapshot-sync qmp command */
     qemu_rec_mutex_lock(&monitor_rec_lock);
+    trace_xen_disk_disconnect_enter(xendev->name);
 
     aio_context_acquire(blkdev->ctx);
 
@@ -1411,6 +1414,7 @@ static void blk_disconnect(struct XenDevice *xendev)
         blkdev->feature_persistent = false;
     }
 
+    trace_xen_disk_disconnect_exit(xendev->name);
     qemu_rec_mutex_unlock(&monitor_rec_lock);
 }
 
