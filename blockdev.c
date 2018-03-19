@@ -1631,7 +1631,7 @@ static void external_snapshot_prepare(BlkActionState *common,
     /* Device and node name of the image to generate the snapshot from */
     const char *device;
     const char *node_name;
-    char *old_node_name;
+    char old_node_name[256];
     /* Reference to the new image (for 'blockdev-snapshot') */
     const char *snapshot_ref;
     /* File name of the new image (for 'blockdev-snapshot-sync') */
@@ -1679,10 +1679,6 @@ static void external_snapshot_prepare(BlkActionState *common,
     state->aio_context = bdrv_get_aio_context(state->old_bs);
     aio_context_acquire(state->aio_context);
     bdrv_drained_begin(state->old_bs);
-
-    old_node_name = id_generate(ID_BLOCK);
-    pstrcpy(state->old_bs->node_name, sizeof(state->old_bs->node_name),
-            old_node_name);
 
     if (!bdrv_is_inserted(state->old_bs)) {
         error_setg(errp, QERR_DEVICE_HAS_NO_MEDIUM, device);
@@ -1755,6 +1751,12 @@ static void external_snapshot_prepare(BlkActionState *common,
 
     state->new_bs = bdrv_open(new_image_file, snapshot_ref, options, flags,
                               errp);
+
+    /* Make sure the old overlay node_name is transferred to new overlay */
+    pstrcpy(old_node_name, sizeof(state->old_bs->node_name), state->old_bs->node_name);
+    bdrv_assign_node_name(state->old_bs, NULL, NULL);
+    bdrv_assign_node_name(state->new_bs, old_node_name, NULL);
+
     /* We will manually add the backing_hd field to the bs later */
     if (!state->new_bs) {
         return;

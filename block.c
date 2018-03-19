@@ -1051,9 +1051,9 @@ static void update_options_from_flags(QDict *options, int flags)
     }
 }
 
-static void bdrv_assign_node_name(BlockDriverState *bs,
-                                  const char *node_name,
-                                  Error **errp)
+void bdrv_assign_node_name(BlockDriverState *bs,
+                           const char *node_name,
+                           Error **errp)
 {
     char *gen_node_name = NULL;
 
