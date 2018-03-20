@@ -4146,6 +4146,103 @@ QemuOptsList qemu_drive_opts = {
     },
 };
 
+void relink_chain(bool has_job_id, const char *job_id, const char *device,
+                      bool has_base, const char *base,
+                      bool has_top, const char *top,
+                      bool has_backing_file, const char *backing_file,
+                      bool has_speed, int64_t speed,
+                      bool has_filter_node_name, const char *filter_node_name,
+                      Error **errp);
+void relink_chain(bool has_job_id, const char *job_id, const char *device,
+                      bool has_base, const char *base,
+                      bool has_top, const char *top,
+                      bool has_backing_file, const char *backing_file,
+                      bool has_speed, int64_t speed,
+                      bool has_filter_node_name, const char *filter_node_name,
+                      Error **errp)
+{
+    BlockDriverState *overlay;
+    BlockDriverState *child_bs, *node_bs = NULL, *parent_bs = NULL;
+    Error *local_err = NULL;
+    AioContext *aio_context;
+    /* bool need_reopen; */
+    /* BdrvChild *c; */
+    /* const BdrvChildRole *role; */
+    /* BlockDriverState *iter; */
+
+    /* int ret; */
+
+    /* This will be part of the QMP command, if/when the
+     * BlockdevOnError change for blkmirror makes it in
+     */
+
+    overlay = bdrv_lookup_bs(device, device, NULL);
+    printf("SSSS 2\n");
+    if (!overlay) {
+        error_free(local_err);
+        error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
+                  "Device '%s' not found", device);
+    } else {
+        error_propagate(errp, local_err);
+    }
+    printf("SSSS 3\n");
+    if (has_top && top) {
+        if (strcmp(overlay->filename, top) != 0) {
+            node_bs = bdrv_find_backing_image(overlay, top);
+        }
+    }
+    printf("SSSS 5\n");
+    if (node_bs == NULL) {
+        error_setg(errp, "Top image file %s not found", top ? top : "NULL");
+        goto out;
+    }
+    printf("SSSS 6\n");
+    if (has_base && base) {
+        child_bs = bdrv_find_backing_image(node_bs, base);
+    } else {
+        child_bs = bdrv_find_base(node_bs);
+    }
+    if (child_bs == NULL) {
+        error_setg(errp, QERR_BASE_NOT_FOUND, base ? base : "NULL");
+        goto out;
+    }
+    parent_bs = bdrv_find_overlay(overlay, node_bs);
+
+    //bdrv_ref(child_bs);
+    //bdrv_ref(node_bs);
+
+    printf("SSSS 7\n");
+    aio_context = bdrv_get_aio_context(parent_bs);
+    aio_context_acquire(aio_context);
+
+    bdrv_drained_begin(parent_bs);
+    bdrv_unref_child(parent_bs, bdrv_find_child(parent_bs, top));
+
+    printf("SSSS 8\n");
+    bdrv_unref(node_bs);
+    qmp_blockdev_del(node_bs->node_name, NULL);
+    printf("SSSS 9\n");
+
+    sleep(10);
+    printf("SSSS 10\n");
+
+    parent_bs->backing = bdrv_attach_child(parent_bs, child_bs, "backing",
+                                           &child_backing, errp);
+    if (!parent_bs->backing) {
+        parent_bs->backing = bdrv_attach_child(parent_bs, node_bs,
+                                               "backing", &child_backing,
+                                               &error_abort);
+        node_bs->backing = bdrv_attach_child(node_bs, child_bs, "backing",
+                                             &child_backing, &error_abort);
+        goto out;
+    }
+    bdrv_refresh_filename(parent_bs);
+    bdrv_refresh_limits(parent_bs, NULL);
+    bdrv_unref(node_bs);
+out:
+    bdrv_drained_end(parent_bs);
+}
+
 void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
                       bool has_base, const char *base,
                       bool has_top, const char *top,
@@ -4154,21 +4251,16 @@ void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
                       bool has_filter_node_name, const char *filter_node_name,
                       Error **errp)
 {
-    BlockDriverState *bs;
-    BlockDriverState *iter;
-    BlockDriverState *base_bs, *top_bs;
-    AioContext *aio_context;
+    /* BlockDriverState *overlay; */
+    /* BlockDriverState *child_bs, *node_bs = NULL, *parent_bs = NULL; */
+    BlockDriverState *bs, *new_top_bs = NULL, *top_bs = NULL, *base_bs = NULL;
     Error *local_err = NULL;
-    /* This will be part of the QMP command, if/when the
-     * BlockdevOnError change for blkmirror makes it in
-     */
-
-    if (!has_speed) {
-        speed = 0;
-    }
-    if (!has_filter_node_name) {
-        filter_node_name = NULL;
-    }
+    AioContext *aio_context;
+    bool need_reopen;
+    int ret;
+    /* BdrvChild *c; */
+    /* const BdrvChildRole *role; */
+    /* BlockDriverState *iter; */
 
     /* Important Note:
      *  libvirt relies on the DeviceNotFound error class in order to probe for
@@ -4176,8 +4268,10 @@ void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
      *  perform the device lookup before any generic errors that may occur in a
      *  scenario in which all optional arguments are omitted. */
     bs = qmp_get_root_bs(device, &local_err);
+    printf("SSSS 1\n");
     if (!bs) {
         bs = bdrv_lookup_bs(device, device, NULL);
+        printf("SSSS 2\n");
         if (!bs) {
             error_free(local_err);
             error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
@@ -4187,6 +4281,7 @@ void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
         }
         return;
     }
+    printf("SSSS 3\n");
 
     aio_context = bdrv_get_aio_context(bs);
     aio_context_acquire(aio_context);
@@ -4194,6 +4289,7 @@ void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
     if (bdrv_op_is_blocked(bs, BLOCK_OP_TYPE_COMMIT_SOURCE, errp)) {
         goto out;
     }
+    printf("SSSS 4\n");
 
     /* default top_bs is the active layer */
     top_bs = bs;
@@ -4203,11 +4299,13 @@ void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
             top_bs = bdrv_find_backing_image(bs, top);
         }
     }
+    printf("SSSS 5\n");
 
     if (top_bs == NULL) {
         error_setg(errp, "Top image file %s not found", top ? top : "NULL");
         goto out;
     }
+    printf("SSSS 6\n");
 
     assert(bdrv_get_aio_context(top_bs) == aio_context);
 
@@ -4224,25 +4322,38 @@ void qmp_relink_chain(bool has_job_id, const char *job_id, const char *device,
 
     assert(bdrv_get_aio_context(base_bs) == aio_context);
 
-    for (iter = top_bs; iter != backing_bs(base_bs); iter = backing_bs(iter)) {
-        if (bdrv_op_is_blocked(iter, BLOCK_OP_TYPE_COMMIT_TARGET, errp)) {
-            goto out;
-        }
-    }
+    new_top_bs = bdrv_find_overlay(bs, top_bs);
+
+    bdrv_drained_begin(new_top_bs);
+    bdrv_drain(new_top_bs);
 
     /* Make sure overlay_bs and top stay around until bdrv_set_backing_hd() */
     bdrv_ref(top_bs);
-    if (bs) {
-        bdrv_ref(bs);
+    bdrv_ref(new_top_bs);
+    printf("SSSS 8\n");
+    need_reopen = !(new_top_bs->open_flags & BDRV_O_RDWR);
+    if (need_reopen) {
+        bdrv_reopen(new_top_bs, new_top_bs->open_flags | BDRV_O_RDWR, NULL);
     }
-    bdrv_drop_intermediate(bs, top_bs, base_bs,
-                           backing_file);
+    printf("SSSS 7\n");
 
-    bdrv_unref(bs);
+    ret = bdrv_drop_intermediate(bs, top_bs, base_bs,
+                                 backing_file);
+
+    printf("SSSS 9 %d\n", ret);
+
+    if (need_reopen) {
+        bdrv_reopen(new_top_bs, new_top_bs->open_flags & ~BDRV_O_RDWR, NULL);
+    }
+
+    bdrv_invalidate_cache_all(NULL);
+    bdrv_reopen(base_bs, base_bs->open_flags & ~BDRV_O_RDWR, NULL);
+
+    bdrv_drained_end(new_top_bs);
+
+    bdrv_unref(new_top_bs);
     bdrv_unref(top_bs);
-
-    bdrv_invalidate_cache(base_bs, NULL);
-    //bdrv_reopen(base_bs, base_bs->open_flags & ~BDRV_O_RDWR, NULL);
 out:
     aio_context_release(aio_context);
+    printf("SSSS 10\n");
 }

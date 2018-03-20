@@ -1067,8 +1067,9 @@ static int blk_init(struct XenDevice *xendev)
      * blk_connect supplies sector-size and sectors
      */
     /* xenstore_write_be_int(&blkdev->xendev, "feature-flush-cache", 1); */
-    xenstore_write_be_int(&blkdev->xendev, "feature-persistent",
-                          !blkdev->feature_grant_copy);
+    /* xenstore_write_be_int(&blkdev->xendev, "feature-persistent", */
+    /*                       !blkdev->feature_grant_copy); */
+    xenstore_write_be_int(&blkdev->xendev, "feature-persistent", 0);
     xenstore_write_be_int(&blkdev->xendev, "info", info);
 
     xenstore_write_be_int(&blkdev->xendev, "max-ring-page-order",
@@ -1241,6 +1242,7 @@ static int blk_connect(struct XenDevice *xendev)
     } else {
         blkdev->feature_persistent = !!pers;
     }
+    blkdev->feature_persistent = FALSE;
 
 
     if (blkdev->devicename) {
